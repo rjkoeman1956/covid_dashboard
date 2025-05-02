@@ -2,7 +2,7 @@
 """
 TODO: Add module-level description here.
 """
-
+from config import SHAPEFILES_DIR
 import matplotlib.pyplot as plt
 import pandas as pd_riool
 import geopandas as gpd
@@ -10,6 +10,52 @@ from pathlib import Path
 import ipywidgets as widgets
 import seaborn as sns
 import numpy as np
+
+def update_heatmap_riool(year):
+    from pathlib import Path
+    import pandas as pd
+    from data_loader import load_province_shapefile
+
+    csv_directory = Path(__file__).resolve().parent.parent / 'data' / 'csv'
+    file5 = csv_directory / 'COVID-19_rioolwaterdata.csv'
+
+    df_inkomen = pd.read_csv(file5, sep=';')
+
+    gdf_prov = load_province_shapefile()
+
+    # Gebruik gemiddelde RNA-waarde als tijdelijke placeholder
+    mean_rna = df_inkomen['RNA_flow_per_100000'].mean()
+    gdf_prov['RNA_flow_per_100000'] = mean_rna
+    columns = 'RNA_flow_per_100000'
+
+    ax = gdf_prov.plot(
+        column=columns,
+        legend=True,
+        figsize=(10, 8),
+        edgecolor='black'
+    )
+    ax.set_title(f'Gemiddelde RNA/100.000 in rioolwater ({year})')
+    ax.axis('off')
+    columns = 'RNA_flow_per_100000'
+    column = columns,
+    cmap = 'OrRd',
+    legend = True,
+    edgecolor = 'black'
+    ax.set_title("Corona besmetting in rioolwater", fontsize=15, fontweight='bold')
+    ax.set_axis_off()
+
+    # arrow
+    x, y, arrowlenght = 0, 0, 0.2
+    angle = 90
+    dx = arrowlenght * np.cos(np.radians(angle))
+    dy = arrowlenght * np.sin(np.radians(angle))
+
+    ax.annotate('N', xy=(x, y), xytext=(x - dx, y - dy),
+                  arrowprops=dict(facecolor='black', width=5, headwidth=15),
+                  ha='center', va='center', fontsize=20,
+                  xycoords=ax.transAxes)
+
+    plt.show()
 
 def update_plot(df, year, total_reported, hospital_admission, deceased, province, municipalities, months):
     """
@@ -53,7 +99,7 @@ def update_plot(df, year, total_reported, hospital_admission, deceased, province
     y_total_reported = grouped_df['Total_reported'] if total_reported else None
     y_hospital_admission = grouped_df['Hospital_admission'] if hospital_admission else None
     y_deceased = grouped_df['Deceased'] if deceased else None
-    
+
     # Set minimal width of bars
     x = np.arange(len(x_labels)) if len(x_labels) > 1 else np.array([0])
     bar_width = 0.25
@@ -92,15 +138,15 @@ def update_plot(df, year, total_reported, hospital_admission, deceased, province
     plt.tight_layout()
     plt.show()
 
-def plot_province_heatmap(gdf, column='Total_reported'):
-    """
-    TODO: Describe what this function does.
-    """
+# Nieuwe defenitie Shapely
+def plot_province_heatmap(gdf, column):
     import matplotlib.pyplot as plt
+    fig, ax = plt.subplots(1, 1, figsize=(8, 10))
 
-    fig, ax = plt.subplots()
-    fig.set_size_inches(6, 6)
-
+    if gdf.geom_type.isin(['MultiPolygon']).any():
+        gdf = gdf.explode()
+        gdf.reset_index(drop=True, inplace=True)
+        
     xlim = gdf.total_bounds[[0, 2]]
     ylim = gdf.total_bounds[[1, 3]]
 
@@ -114,22 +160,50 @@ def plot_province_heatmap(gdf, column='Total_reported'):
         legend_kwds={'label': column.replace('_', ' '), 'orientation': 'vertical'},
         missing_kwds={"color": "lightgrey", "label": "No data"}
     )
-
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
-    ax.set_aspect('equal')
     ax.axis('off')
-    for spine in ax.spines.values():
-        spine.set_visible(False)
-
-    leg = ax.get_legend()
-    if leg:
-        leg.set_bbox_to_anchor((1.02, 1))
-        leg.set_title(column)
-
-    plt.subplots_adjust(left=0.01, right=0.85)
-    plt.tight_layout()
     plt.show()
+
+
+# def plot_province_heatmap(gdf, column='Total_reported'):
+#     """
+#     TODO: Describe what this function does.
+#     """
+#     import matplotlib.pyplot as plt
+
+#     fig, ax = plt.subplots()
+#     fig.set_size_inches(6, 6)
+
+#     xlim = gdf.total_bounds[[0, 2]]
+#     ylim = gdf.total_bounds[[1, 3]]
+
+#     gdf.plot(
+#         column=column,
+#         cmap='OrRd',
+#         linewidth=0.5,
+#         ax=ax,
+#         edgecolor='0.8',
+#         legend=True,
+#         legend_kwds={'label': column.replace('_', ' '), 'orientation': 'vertical'},
+#         missing_kwds={"color": "lightgrey", "label": "No data"}
+#     )
+#     ax.set_xlim(xlim)
+#     ax.set_ylim(ylim)
+#     ax.set_aspect('equal')
+#     ax.axis('off')
+#     for spine in ax.spines.values():
+#         spine.set_visible(False)
+
+#     leg = ax.get_legend()
+#     if leg:
+#         leg.set_bbox_to_anchor((1.02, 1))
+#         leg.set_title(column)
+
+#     plt.subplots_adjust(left=0.01, right=0.85)
+#     plt.tight_layout()
+#     plt.show()
+
 
 def plot_municipality_heatmap(gdf, column='Total_reported'):
     """
@@ -153,7 +227,6 @@ def plot_municipality_heatmap(gdf, column='Total_reported'):
         legend_kwds={'label': column.replace('_', ' '), 'orientation': 'vertical'},
         missing_kwds={"color": "lightgrey", "label": "No data"}
     )
-
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
     ax.set_aspect('equal')
@@ -163,7 +236,6 @@ def plot_municipality_heatmap(gdf, column='Total_reported'):
 
     leg = ax.get_legend()
     if leg:
-        leg.set_bbox_to_anchor((1.02, 1))
         leg.set_title(column)
 
     plt.subplots_adjust(left=0.01, right=0.85)

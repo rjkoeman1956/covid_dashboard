@@ -1,4 +1,4 @@
-from config import CSV_DIR, SHAPEFILES_DIR, GPKG_FILE
+from config import CSV_DIR, SHAPEFILES_DIR
 import pandas as pd
 import geopandas as gpd
 
@@ -50,7 +50,7 @@ class Riool:
             self.gemeenten_per_provincie = pd.read_csv(file2, sep=';')
         except:
             self.aantallen_riool = None
-
+            
         self.merged_clean_dataset_riool = None
 
     def set_merged_and_clean_dataset_riool(self, p_merged_clean_dataset_riool: pd.DataFrame):
