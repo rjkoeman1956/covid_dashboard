@@ -1,4 +1,8 @@
-### Module-Level Description.
+# covid_dashboard
+
+OU IB3502-242533B Python Opdracht 2.0 
+
+Update: 2025-05_02_001
 
 The main program (Main) is Covid_Dashboard.IPynb. Three tabs are displayed here:
  1. Corona
