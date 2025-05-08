@@ -8,6 +8,7 @@ The main program (Main) is Covid_Dashboard.IPynb. Three tabs are displayed here:
  1. Corona
  2. Heatmap
  3. Sewage water
+ 4. Download new data
 
 The three tabs have the following functionality:
 
@@ -33,6 +34,9 @@ The second addition to the original assignment. This is about measured Corona po
  3. Selection on Provincis or Municipalities
  4. The output is a heat map of the Netherlands based on the selections via the Covid_Dashbord_presenter module.
 
+4. Download new data:
+This is about downloading files from the RIVM site and save these in /data/csv
+
 
 This project consists of the following modules:
 
@@ -41,6 +45,7 @@ This project consists of the following modules:
  3. Data_loader.py
  4. Dataphrame_cleaner.py
  5. Dataphrame_combiner.py
+ 6. Data_writer
 
 These five modules together have a clear and separate responsibility.
 
@@ -65,6 +70,10 @@ These five modules together have a clear and separate responsibility.
 5. Dataphrame_combiner.py
  - Combines cleaned data frames on common columns.
  - Type: Merge layer.
+
+6. Download new data:
+ - Download files from the RIVM site and save these in /data/csv
+ - Type: Extraxt layer
 
 Coherence:
 Each layer is linked separately and fulfills a single responsibility. This makes the whole maintainable, expandable and testable.
