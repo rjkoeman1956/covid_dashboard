@@ -1,6 +1,3 @@
-"""
-TODO: Add module-level description here.
-"""
 import pandas as pd
 import data_loader
 import dataframe_cleaner
@@ -146,9 +143,9 @@ def get_municipality_heatmap_riool_data(year):
 
 def get_metric_mapping():
     return {
-    'Total reported': 'Total_reported',
-    'Hospital admission': 'Hospital_admission',
-    'Deceased': 'Deceased'
+        'Total reported': 'Total_reported',
+        'Hospital admission': 'Hospital_admission',
+        'Deceased': 'Deceased'
     }
 
 def get_available_years(df):

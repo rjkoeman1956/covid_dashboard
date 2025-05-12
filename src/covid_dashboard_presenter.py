@@ -1,326 +1,218 @@
-#%matplotlib inline
-"""
-TODO: Add module-level description here.
-"""
-from config import SHAPEFILES_DIR
-import matplotlib.pyplot as plt
-import pandas as pd_riool
-import geopandas as gpd
+import sys
 from pathlib import Path
-import ipywidgets as widgets
-import seaborn as sns
+import matplotlib.pyplot as plt
 import numpy as np
 
-def update_heatmap_riool(year):
-    from pathlib import Path
-    import pandas as pd
-    from data_loader import load_province_shapefile
+# Vind de projectroot op basis van config.py of een herkenbaar anker
+project_root = Path(__file__).resolve()
+for _ in range(10):  # Max 10 niveaus omhoog
+    if (project_root / "config.py").exists():
+        break
+    if project_root == project_root.parent:
+        raise FileNotFoundError("📁 'config.py' niet gevonden in projectstructuur.")
+    project_root = project_root.parent
 
-    csv_directory = Path(__file__).resolve().parent.parent / 'data' / 'csv'
-    file5 = csv_directory / 'COVID-19_rioolwaterdata.csv'
+sys.path.insert(0, str(project_root))
 
-    df_inkomen = pd.read_csv(file5, sep=';')
+try:
+    from config import SHAPEFILES_DIR
+except ImportError as e:
+    raise ImportError(f"⚠️ Kon 'config.py' niet importeren vanuit {project_root}") from e
 
-    gdf_prov = load_province_shapefile()
-
-    # Gebruik gemiddelde RNA-waarde als tijdelijke placeholder
-    mean_rna = df_inkomen['RNA_flow_per_100000'].mean()
-    gdf_prov['RNA_flow_per_100000'] = mean_rna
-    columns = 'RNA_flow_per_100000'
-
-    ax = gdf_prov.plot(
-        column=columns,
-        legend=True,
-        figsize=(10, 8),
-        edgecolor='black'
-    )
-    ax.set_title(f'Gemiddelde RNA/100.000 in rioolwater ({year})')
-    ax.axis('off')
-    columns = 'RNA_flow_per_100000'
-    column = columns,
-    cmap = 'OrRd',
-    legend = True,
-    edgecolor = 'black'
-    ax.set_title("Corona besmetting in rioolwater", fontsize=15, fontweight='bold')
-    ax.set_axis_off()
-
-    # arrow
-    x, y, arrowlenght = 0, 0, 0.2
-    angle = 90
-    dx = arrowlenght * np.cos(np.radians(angle))
-    dy = arrowlenght * np.sin(np.radians(angle))
-
-    ax.annotate('N', xy=(x, y), xytext=(x - dx, y - dy),
-                  arrowprops=dict(facecolor='black', width=5, headwidth=15),
-                  ha='center', va='center', fontsize=20,
-                  xycoords=ax.transAxes)
-
-    plt.show()
-
-def update_plot(df, year, total_reported, hospital_admission, deceased, province, municipalities, months):
+def plot_covid(
+    df,
+    year,
+    total_reported=True,
+    hospital_admission=True,
+    deceased=True,
+    province='Netherlands',
+    municipalities=False,
+    months=False,
+    save_as=None,
+    dpi=300
+):
     """
-    TODO: Describe what this function does.
+    Plot COVID-19 gerelateerde statistieken als staafdiagram.
+
+    Parameters:
+    - df (DataFrame): Dataset met Covid-informatie.
+    - year (int): Te selecteren jaar.
+    - total_reported (bool): Toon aantal meldingen.
+    - hospital_admission (bool): Toon ziekenhuisopnames.
+    - deceased (bool): Toon overledenen.
+    - province (str): Provincie ('Netherlands', 'All provinces' of specifieke naam).
+    - municipalities (bool): Toon op gemeentelijk niveau (alleen bij specifieke provincie).
+    - months (bool): Groepeer op maand (alleen bij Netherlands of provincie).
+    - save_as (str or None): Bestandsnaam om op te slaan ('.png' of '.pdf'), of None voor alleen weergave.
+    - dpi (int): Resolutie van de uitvoer (default: 300).
+
+    Returns:
+    - matplotlib.figure.Figure: De gegenereerde figuur (voor verdere verwerking of tests).
     """
-    """
-    Generates a grouped bar chart with Covid-data upon GUI input.
-    """
-    # Filter by year
     filtered_df = df[df['Year'] == year]
 
-    # Aggregation based upon input
+    # Aggregatie op basis van selectie
     if province == 'Netherlands':
         if months:
-            grouped_df = filtered_df.groupby(['Month', 'Month_name'])[
-                ['Total_reported', 'Hospital_admission', 'Deceased']].sum().sort_values(by='Month')
+            grouped_df = (
+                filtered_df.groupby(['Month', 'Month_name'])[['Total_reported', 'Hospital_admission', 'Deceased']]
+                .sum()
+                .sort_values(by='Month')
+            )
             grouped_df.reset_index(level=0, drop=True, inplace=True)
         else:
             grouped_df = filtered_df.groupby('Year')[['Total_reported', 'Hospital_admission', 'Deceased']].sum()
     elif province == 'All provinces':
-        grouped_df = filtered_df.groupby(['Province_merged'])[
-            ['Total_reported', 'Hospital_admission', 'Deceased']].sum()
+        grouped_df = filtered_df.groupby('Province_merged')[['Total_reported', 'Hospital_admission', 'Deceased']].sum()
     elif municipalities:
         filtered_df = filtered_df[filtered_df['Province_merged'] == province]
-        grouped_df = filtered_df.groupby(['Municipality_name_merged'])[
-            ['Total_reported', 'Hospital_admission', 'Deceased']].sum()
+        grouped_df = filtered_df.groupby('Municipality_name_merged')[['Total_reported', 'Hospital_admission', 'Deceased']].sum()
     elif months:
         filtered_df = filtered_df[filtered_df['Province_merged'] == province]
-        grouped_df = filtered_df.groupby(['Month', 'Month_name'])[
-            ['Total_reported', 'Hospital_admission', 'Deceased']].sum()
+        grouped_df = (
+            filtered_df.groupby(['Month', 'Month_name'])[['Total_reported', 'Hospital_admission', 'Deceased']]
+            .sum()
+        )
         grouped_df.reset_index(level=0, drop=True, inplace=True)
     else:
         filtered_df = filtered_df[filtered_df['Province_merged'] == province]
-        grouped_df = filtered_df.groupby(['Province_merged'])[
-            ['Total_reported', 'Hospital_admission', 'Deceased']].sum()
+        grouped_df = filtered_df.groupby('Province_merged')[['Total_reported', 'Hospital_admission', 'Deceased']].sum()
 
-    # Get label x values
+    # Plotvoorbereiding
     x_labels = grouped_df.index
-
-    # Get bar y values
-    y_total_reported = grouped_df['Total_reported'] if total_reported else None
-    y_hospital_admission = grouped_df['Hospital_admission'] if hospital_admission else None
-    y_deceased = grouped_df['Deceased'] if deceased else None
-
-    # Set minimal width of bars
     x = np.arange(len(x_labels)) if len(x_labels) > 1 else np.array([0])
     bar_width = 0.25
 
-    # Dynamic bar formatting
-    if len(x) < 10:
-        plt.figure(figsize=(15, 6))
-    elif len(x) < 15:
-        plt.figure(figsize=(20, 6))
-    elif len(x) < 20:
-        plt.figure(figsize=(24, 7))
-    elif len(x) < 25:
-        plt.figure(figsize=(24, 9))
-    elif len(x) < 30:
-        plt.figure(figsize=(26, 9))
+    # Dynamische figuurbreedte
+    n = len(x)
+    if n < 10:
+        figsize = (15, 6)
+    elif n < 15:
+        figsize = (20, 6)
+    elif n < 20:
+        figsize = (24, 7)
+    elif n < 25:
+        figsize = (24, 9)
+    elif n < 30:
+        figsize = (26, 9)
     else:
-        plt.figure(figsize=(28, 10))
+        figsize = (28, 10)
 
-    # Plot bars next to each other
-    if y_total_reported is not None:
-        plt.bar(x - bar_width, y_total_reported, width=bar_width, color='blue', label='Covid reported')
-    if y_hospital_admission is not None:
-        plt.bar(x, y_hospital_admission, width=bar_width, color='green', label='Hospital admission')
-    if y_deceased is not None:
-        plt.bar(x + bar_width, y_deceased, width=bar_width, color='orange', label='Deceased')
+    fig, ax = plt.subplots(figsize=figsize)
 
-    # Axis-labels, title, legend
-    plt.xticks(x, x_labels, rotation=45)
+    if total_reported:
+        ax.bar(x - bar_width, grouped_df['Total_reported'], width=bar_width, color='steelblue', label='Reported')
+    if hospital_admission:
+        ax.bar(x, grouped_df['Hospital_admission'], width=bar_width, color='seagreen', label='Hospital')
+    if deceased:
+        ax.bar(x + bar_width, grouped_df['Deceased'], width=bar_width, color='darkorange', label='Deceased')
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(x_labels, rotation=45)
     if int(year) >= 2023:
-        plt.xlabel('Warning: Not all RIVM data is available after 1-1-2023', color='red')
-    plt.ylabel('Number')
-    plt.title(f'Covid data for {year} ({province})')
-    plt.gca().get_yaxis().get_major_formatter().set_scientific(False)
+        ax.set_xlabel('⚠️ Not all RIVM data is available after 1-1-2023', color='red', fontsize=10)
+    else:
+        ax.set_xlabel('Time period')
+    ax.set_ylabel('Number')
+    ax.set_title(f'COVID-19 data for {year} ({province})', fontsize=14, fontweight='bold')
+    ax.ticklabel_format(style='plain', axis='y')
     if any([total_reported, hospital_admission, deceased]):
-        plt.legend()
-    plt.tight_layout()
-    plt.show()
+        ax.legend()
+    fig.tight_layout()
 
-# Nieuwe defenitie Shapely
+    if save_as:
+        plt.savefig(save_as, dpi=dpi, bbox_inches='tight')
+        plt.close(fig)
+    else:
+        plt.show()
+
+    return fig
+
+def plot_heatmap(
+    gdf,
+    column,
+    title,
+    cmap='OrRd',
+    legend=True,
+    edgecolor='0.8',
+    figsize=(8, 6),
+    dpi=300,
+    save_as=None,
+    arrow_position='bottomright',
+    scale_max=None
+):
+    """
+    Plot een heatmap met optionele noordpijl en opslagoptie.
+
+    Parameters:
+    - gdf (GeoDataFrame): De geodata.
+    - column (str): De kolom waarop de kleur gebaseerd wordt.
+    - title (str): De titel van de kaart.
+    - cmap (str): Kleurenkaart (default: 'OrRd').
+    - legend (bool): Toon legenda (default: True).
+    - edgecolor (str): Randkleur polygons (default: '0.8').
+    - figsize (tuple): Grootte van de figuur (default: (10, 8)).
+    - dpi (int): Resolutie voor opslag (default: 300).
+    - save_as (str or None): Bestandsnaam om op te slaan (bv. 'kaart.png') of None om alleen te tonen.
+    - arrow_position (str): Locatie van noordpijl ('topleft', 'topright', 'bottomleft', 'bottomright').
+
+    Returns:
+    - matplotlib.axes.Axes: De gegenereerde plot.
+    """
+    fig, ax = plt.subplots(figsize=figsize)
+    gdf.plot(
+        column=column,
+        cmap=cmap,
+        edgecolor=edgecolor,
+        linewidth=0.5,
+        legend=legend,
+        vmin=0,
+        vmax=None,
+        legend_kwds={'label': column.replace('_', ' '), 'orientation': 'vertical'},
+        missing_kwds={"color": "lightgrey", "label": "No data"},
+        ax=ax
+    )
+    ax.set_title(
+        title, 
+        fontsize=10, 
+        fontweight='normal', 
+        color='black')
+    ax.set_axis_off()
+
+    # Nord arrow
+    pos_dict = {
+        'topleft': (0.1, 0.9),
+        'topright': (0.9, 0.9),
+        'bottomleft': (0.1, 0.1),
+        'bottomright': (0.9, 0.1)
+    }
+    x, y = pos_dict.get(arrow_position, (0.9, 0.1))
+    arrowlength = 0.08
+    angle = 90
+    dx = arrowlength * np.cos(np.radians(angle))
+    dy = arrowlength * np.sin(np.radians(angle))
+
+    ax.annotate('N', xy=(x, y), xytext=(x - dx, y - dy),
+                arrowprops=dict(facecolor='black', width=5, headwidth=15),
+                ha='center', va='center', fontsize=16,
+                xycoords=ax.transAxes)
+
+    if save_as:
+        plt.savefig(save_as, dpi=dpi, bbox_inches='tight')
+        plt.close(fig)
+    else:
+        plt.show()
+
+    return ax
+
 def plot_province_heatmap(gdf, column):
-    import matplotlib.pyplot as plt
-    fig, ax = plt.subplots(1, 1, figsize=(8, 10))
+    plot_heatmap(gdf, column=column, title="RIVM Covid measurements")
 
-    if gdf.geom_type.isin(['MultiPolygon']).any():
-        gdf = gdf.explode()
-        gdf.reset_index(drop=True, inplace=True)
-        
-    xlim = gdf.total_bounds[[0, 2]]
-    ylim = gdf.total_bounds[[1, 3]]
+def plot_municipality_heatmap(gdf, column):
+    plot_heatmap(gdf, column=column, title="RIVM Covid measurements")
 
-    gdf.plot(
-        column=column,
-        cmap='OrRd',
-        linewidth=0.5,
-        ax=ax,
-        edgecolor='0.8',
-        legend=True,
-        legend_kwds={'label': column.replace('_', ' '), 'orientation': 'vertical'},
-        missing_kwds={"color": "lightgrey", "label": "No data"}
-    )
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
-    ax.axis('off')
-    plt.show()
+def plot_province_heatmap_riool(gdf, column):
+    plot_heatmap(gdf, column=column, title="Sewer measurements")
 
-
-# def plot_province_heatmap(gdf, column='Total_reported'):
-#     """
-#     TODO: Describe what this function does.
-#     """
-#     import matplotlib.pyplot as plt
-
-#     fig, ax = plt.subplots()
-#     fig.set_size_inches(6, 6)
-
-#     xlim = gdf.total_bounds[[0, 2]]
-#     ylim = gdf.total_bounds[[1, 3]]
-
-#     gdf.plot(
-#         column=column,
-#         cmap='OrRd',
-#         linewidth=0.5,
-#         ax=ax,
-#         edgecolor='0.8',
-#         legend=True,
-#         legend_kwds={'label': column.replace('_', ' '), 'orientation': 'vertical'},
-#         missing_kwds={"color": "lightgrey", "label": "No data"}
-#     )
-#     ax.set_xlim(xlim)
-#     ax.set_ylim(ylim)
-#     ax.set_aspect('equal')
-#     ax.axis('off')
-#     for spine in ax.spines.values():
-#         spine.set_visible(False)
-
-#     leg = ax.get_legend()
-#     if leg:
-#         leg.set_bbox_to_anchor((1.02, 1))
-#         leg.set_title(column)
-
-#     plt.subplots_adjust(left=0.01, right=0.85)
-#     plt.tight_layout()
-#     plt.show()
-
-
-def plot_municipality_heatmap(gdf, column='Total_reported'):
-    """
-    TODO: Describe what this function does.
-    """
-    import matplotlib.pyplot as plt
-
-    fig, ax = plt.subplots()
-    fig.set_size_inches(6, 6)
-
-    xlim = gdf.total_bounds[[0, 2]]
-    ylim = gdf.total_bounds[[1, 3]]
-
-    gdf.plot(
-        column=column,
-        cmap='OrRd',
-        linewidth=0.5,
-        ax=ax,
-        edgecolor='0.8',
-        legend=True,
-        legend_kwds={'label': column.replace('_', ' '), 'orientation': 'vertical'},
-        missing_kwds={"color": "lightgrey", "label": "No data"}
-    )
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
-    ax.set_aspect('equal')
-    ax.axis('off')
-    for spine in ax.spines.values():
-        spine.set_visible(False)
-
-    leg = ax.get_legend()
-    if leg:
-        leg.set_title(column)
-
-    plt.subplots_adjust(left=0.01, right=0.85)
-    plt.tight_layout()
-    plt.show()
-
-
-def plot_province_heatmap_riool(gdf, column='RNA_flow_per_100000'):
-    """
-    TODO: Describe what this function does.
-    """
-    import matplotlib.pyplot as plt
-
-    fig, ax = plt.subplots()
-    fig.set_size_inches(6, 6)
-
-    xlim = gdf.total_bounds[[0, 2]]
-    ylim = gdf.total_bounds[[1, 3]]
-
-    gdf.plot(
-        column=column,
-        cmap='OrRd',
-        linewidth=0.5,
-        ax=ax,
-        edgecolor='0.8',
-        legend=True,
-        legend_kwds={'label': column.replace('_', ' '), 'orientation': 'vertical'},
-        missing_kwds={"color": "lightgrey", "label": "No data"}
-    )
-
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
-    ax.set_aspect('equal')
-    ax.axis('off')
-    for spine in ax.spines.values():
-        spine.set_visible(False)
-
-    leg = ax.get_legend()
-    if leg:
-        leg.set_bbox_to_anchor((1.02, 1))
-        leg.set_title(column)
-
-    plt.subplots_adjust(left=0.01, right=0.85)
-    plt.tight_layout()
-    plt.show()
-
-def plot_municipality_heatmap_riool(gdf, column='RNA_flow_per_100000'):
-    """
-    TODO: Describe what this function does.
-    """
-    import matplotlib.pyplot as plt
-
-    fig, ax = plt.subplots()
-    fig.set_size_inches(6, 6)
-
-    xlim = gdf.total_bounds[[0, 2]]
-    ylim = gdf.total_bounds[[1, 3]]
-
-    gdf.plot(
-        column=column,
-        cmap='OrRd',
-        linewidth=0.5,
-        ax=ax,
-        edgecolor='0.8',
-        legend=True,
-        legend_kwds={'label': column.replace('_', ' '), 'orientation': 'vertical'},
-        missing_kwds={"color": "lightgrey", "label": "No data"}
-    )
-
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
-    ax.set_aspect('equal')
-    ax.axis('off')
-    for spine in ax.spines.values():
-        spine.set_visible(False)
-
-    leg = ax.get_legend()
-    if leg:
-        leg.set_bbox_to_anchor((1.02, 1))
-        leg.set_title(column)
-
-    plt.subplots_adjust(left=0.01, right=0.85)
-    plt.tight_layout()
-    plt.show()
-
-
-
-
+def plot_municipality_heatmap_riool(gdf, column):
+    plot_heatmap(gdf, column=column, title="Sewer measurements")

@@ -36,7 +36,7 @@ class Dataframes:
 
 
 class Riool:
-    # Class Dataframes stores different pandas dataframes. The pandas dataframe merged_clean_dataset is the result of cleaning and enriching the original RIVM datasets
+    # Class Dataframes stores different pandas dataframes. Merged_clean_dataset is the result of cleaning and enriching the original RIVM datasets
     def __init__(self):
         """
         TODO: Describe what this function does.
@@ -65,9 +65,8 @@ def load_province_shapefile():
     return gpd.read_file(shapefile_path)
 
 def load_municipality_shapefile():
-    shapefile_path = SHAPEFILES_DIR / "sample_gemeenten_50.gpkg"
-#    gdf = gpd.read_file(GPKG_FILE, layer="gemeenten")
-    gdf = gpd.read_file(shapefile_path)
+    shapefile_path = SHAPEFILES_DIR / "wijkenbuurten_2024_v1.gpkg"
+    gdf = gpd.read_file(GPKG_FILE, layer="gemeenten")
     return gdf
 
 

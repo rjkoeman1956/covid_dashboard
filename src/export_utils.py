@@ -4,7 +4,8 @@ from datetime import datetime
 import pandas as pd
 
 EXPORTS_DIR = os.path.join(os.getcwd(), "/notebooks/exports")
-os.makedirs(EXPORTS_DIR, exist_ok=True)
+
+# os.makedirs(EXPORTS_DIR, exist_ok=True)
 
 def export_dataframe(df, format="csv", name="export", full=False):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
