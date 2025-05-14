@@ -1,5 +1,8 @@
+git remote add origin https://github.com/rjkoeman1956/covid_dashboard.git
+
 __pycache__/
 .ipynb_checkpoints/
 .DS_Store
 *.log
 *.zip
+/data/shapefiles/wijkenbuurten_2024_v1.gpkg
