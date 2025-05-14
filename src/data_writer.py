@@ -1,6 +1,12 @@
 from config import CSV_DIR
+from config import SHAPEFILES_DIR
 import pandas as pd
 import os
+from config import link1
+from config import link2
+from config import link3
+from config import link4
+from config import link5
 
 def Saveframes(verbose=True):
     """
@@ -10,16 +16,11 @@ def Saveframes(verbose=True):
         dict: Mapping van bestandsnaam → status (geslaagd of fout).
     """
     urls = {
-        'COVID-19_aantallen_gemeente_per_dag.csv':
-            'https://data.rivm.nl/data/covid-19/COVID-19_aantallen_gemeente_per_dag.csv',
-        'COVID-19_aantallen_gemeente_per_dag_tm_03102021.csv':
-            'https://data.rivm.nl/data/covid-19/COVID-19_aantallen_gemeente_per_dag_tm_03102021.csv',
-        'COVID-19_ziekenhuisopnames.csv':
-            'https://data.rivm.nl/data/covid-19/COVID-19_ziekenhuisopnames.csv',
-        'COVID-19_ziekenhuisopnames_tm_03102021.csv':
-            'https://data.rivm.nl/data/covid-19/COVID-19_ziekenhuisopnames_tm_03102021.csv',
-        'COVID-19_rioolwaterdata.csv':
-            'https://data.rivm.nl/data/covid-19/COVID-19_rioolwaterdata.csv'
+        'COVID-19_aantallen_gemeente_per_dag.csv': link1,
+        'COVID-19_aantallen_gemeente_per_dag_tm_03102021.csv': link2,
+        'COVID-19_ziekenhuisopnames.csv': link3,
+        'COVID-19_ziekenhuisopnames_tm_03102021.csv': link4,
+        'COVID-19_rioolwaterdata.csv': link5
     }
 
     os.makedirs(CSV_DIR, exist_ok=True)
@@ -38,3 +39,29 @@ def Saveframes(verbose=True):
                 print(f"❌ Mislukt voor {fname}: {e}")
 
     return results
+
+def Savepoly(verbose=True):
+    """
+    Download file wijkenbuurten
+    
+    """
+    urls = {
+        'wijkenbuurten_2024_v1.gpkg': link7
+    }
+
+    os.makedirs(CSV_DIR, exist_ok=True)
+
+    results = {}
+    try:
+        wijkenbuurten = gpd.read_file(link7)
+        wijkenbuurten.to_file(SHAPEFILES_DIR / 'wijkenbuurten')
+        results['CBS'] = '✅ Geslaagd'
+        if verbose:
+             print(f"✅ {fname} opgeslagen.")
+    except Exception as e:
+        results['CBS'] = f"❌ Fout: {str(e)}"
+        if verbose:
+            print(f"❌ Mislukt voor {fname}: {e}")
+
+    return results
+    

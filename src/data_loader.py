@@ -1,13 +1,21 @@
 from config import CSV_DIR, SHAPEFILES_DIR, GPKG_FILE
 import pandas as pd
 import geopandas as gpd
+from config import src_file1
+from config import src_file2
+from config import src_file3
+from config import src_file4
+from config import src_file5
+from config import src_file6
+from config import src_file7
+from config import src_file8
 
 class Dataframes:
     def __init__(self):
-        file1 = CSV_DIR / 'COVID-19_aantallen_gemeente_per_dag.csv'
-        file2 = CSV_DIR / 'COVID-19_aantallen_gemeente_per_dag_tm_03102021.csv'
-        file3 = CSV_DIR / 'COVID-19_ziekenhuisopnames.csv'
-        file4 = CSV_DIR / 'COVID-19_ziekenhuisopnames_tm_03102021.csv'
+        file1 = src_file1
+        file2 = src_file2
+        file3 = src_file3
+        file4 = src_file4
 
         try:
             self.aantallen_gemeente_df1 = pd.read_csv(file1, sep=';')
@@ -42,12 +50,12 @@ class Riool:
         TODO: Describe what this function does.
         """
         # get the location where the csv files are locally stored. Use joinpath to make the path platform independent
-        file1 = CSV_DIR / 'COVID-19_rioolwaterdata.csv'
-        file2 = CSV_DIR / 'gemeenten_per_provincie.csv'
+        file5 = CSV_DIR / 'COVID-19_rioolwaterdata.csv'
+        file6 = CSV_DIR / 'gemeenten_per_provincie.csv'
 
         try:
-            self.aantallen_riool = pd.read_csv(file1, sep=';', parse_dates=['Date_measurement'])
-            self.gemeenten_per_provincie = pd.read_csv(file2, sep=';')
+            self.aantallen_riool = pd.read_csv(file5, sep=';', parse_dates=['Date_measurement'])
+            self.gemeenten_per_provincie = pd.read_csv(file6, sep=';')
         except:
             self.aantallen_riool = None
 
@@ -61,11 +69,11 @@ class Riool:
 
 
 def load_province_shapefile():
-    shapefile_path = SHAPEFILES_DIR / "B1_Provinciegrenzen_van_NederlandPolygon.shp"
+    shapefile_path = src_file7
     return gpd.read_file(shapefile_path)
 
 def load_municipality_shapefile():
-    shapefile_path = SHAPEFILES_DIR / "wijkenbuurten_2024_v1.gpkg"
+    shapefile_path = src_file8
     gdf = gpd.read_file(GPKG_FILE, layer="gemeenten")
     return gdf
 
