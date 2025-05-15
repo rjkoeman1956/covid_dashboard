@@ -1,12 +1,15 @@
 from config import CSV_DIR
 from config import SHAPEFILES_DIR
 import pandas as pd
+import geopandas as gpd
 import os
 from config import link1
 from config import link2
 from config import link3
 from config import link4
 from config import link5
+from config import link7
+import dload
 
 def Saveframes(verbose=True):
     """
@@ -49,12 +52,12 @@ def Savepoly(verbose=True):
         'wijkenbuurten_2024_v1.gpkg': link7
     }
 
-    os.makedirs(CSV_DIR, exist_ok=True)
+    os.makedirs(SHAPEFILES_DIR, exist_ok=True)
 
     results = {}
     try:
-        wijkenbuurten = gpd.read_file(link7)
-        wijkenbuurten.to_file(SHAPEFILES_DIR / 'wijkenbuurten')
+#        dload.save_unzip(link7, SHAPEFILES_DIR)
+        dload.save_unzip(link7, 'C:/Users/ronal/Opdracht2_github/covid_dashboard-main/data/shapefiles/')
         results['CBS'] = '✅ Geslaagd'
         if verbose:
              print(f"✅ {fname} opgeslagen.")
@@ -64,4 +67,4 @@ def Savepoly(verbose=True):
             print(f"❌ Mislukt voor {fname}: {e}")
 
     return results
-    
+
