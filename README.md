@@ -14,28 +14,32 @@ The three tabs have the following functionality:
 
 1. Corona:
 The original assignment with Corona overviews.
- 1. Selection by year
- 2. Selection Total Reported, Hospital Admission and Deceased. This option can be selected combined
- 3. Level: Netherlands, all provinces and per Povincie.
- 4. For the provinces it is possible to select on Municipalities of Months.
- 5. Charts are shown based on the selections via the Covid_Dashbord_presenter module.
+   1. Selection by year
+   2. Selection Total Reported, Hospital Admission and Deceased. This option can be selected combined
+   3. Level: Netherlands, all provinces and per Povincie.
+   4. For the provinces it is possible to select on Municipalities of Months.
+   5. Charts are shown based on the selections via the Covid_Dashbord_presenter module.
 
 2. Heatmap:
 The first addition to the original assignment. Here too it is about direct Corona effects.
- 1. Selection by year
- 2. Selection on: Total Reported, Hospital Admission of Deceased.
- 3. Selection on Provincis or Municipalities
- 4. The output is a heat map of the Netherlands based on the selections via the Covid_Dashbord_presenter module.
+   1. Selection by year
+   2. Selection on: Total Reported, Hospital Admission of Deceased.
+   3. Selection on Provincis or Municipalities
+   4. The output is a heat map of the Netherlands based on the selections via the Covid_Dashbord_presenter module.
 
 
 3. Sewage:
 The second addition to the original assignment. This is about measured Corona pollution in the sewage water.
- 1. Selection on year.
- 3. Selection on Provincis or Municipalities
- 4. The output is a heat map of the Netherlands based on the selections via the Covid_Dashbord_presenter module.
+   1. Selection on year.
+   3. Selection on Provincis or Municipalities
+   4. The output is a heat map of the Netherlands based on the selections via the Covid_Dashbord_presenter module.
 
 4. Download new data:
-This is about downloading files from the RIVM site and save these in /data/csv
+This is about downloading files
+   1. from the RIVM site and save these in /data/csv
+   2. Download CBS
+      1. Provinciegrenzen van Nederland save these in /data/shapefiles
+      2. Buurt en gemeente save these in /data/shapefiles/WijkBuurtkaart_2024_v1
 
 
 This project consists of the following modules:
