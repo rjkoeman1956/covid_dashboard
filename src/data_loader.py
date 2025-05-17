@@ -50,12 +50,12 @@ class Riool:
         TODO: Describe what this function does.
         """
         # get the location where the csv files are locally stored. Use joinpath to make the path platform independent
-        file5 = CSV_DIR / 'COVID-19_rioolwaterdata.csv'
-        file6 = CSV_DIR / 'gemeenten_per_provincie.csv'
+#        file5 = CSV_DIR / 'COVID-19_rioolwaterdata.csv'
+#        file6 = CSV_DIR / 'gemeenten_per_provincie.csv'
 
         try:
-            self.aantallen_riool = pd.read_csv(file5, sep=';', parse_dates=['Date_measurement'])
-            self.gemeenten_per_provincie = pd.read_csv(file6, sep=';')
+            self.aantallen_riool = pd.read_csv(src_file5, sep=';', parse_dates=['Date_measurement'])
+            self.gemeenten_per_provincie = pd.read_csv(src_file6, sep=';')
         except:
             self.aantallen_riool = None
 
