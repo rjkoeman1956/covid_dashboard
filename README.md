@@ -115,6 +115,12 @@ The Snap-it notebook already contains this as the first cell.
 
 ### 🛠 Installation instruction for package support (optional, recommended for developers)
 
+Needed libraries
+    1. pandas
+    2. geopandas
+    3. dload
+    4. fiona
+
 If you unpack this folder on a new environment and work with Jupyter-notebooks, then perform the following in a terminal in the main folder:
 
 `` Bash
