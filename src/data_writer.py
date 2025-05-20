@@ -13,7 +13,7 @@ import dload
 
 def Saveframes(verbose=True):
     """
-    Download COVID-19 datasets van RIVM en sla ze op in /data/csv.
+    Download COVID-19 datasets van RIVM en sla ze op in /data/csv. De links are from config.py
 
     Returns:
         dict: Mapping van bestandsnaam → status (geslaagd of fout).
@@ -45,7 +45,7 @@ def Saveframes(verbose=True):
 
 def Savepoly(verbose=True):
     """
-    Download file wijkenbuurten
+    Download file wijkenbuurten. De links are from config.py
     
     """
     urls = {

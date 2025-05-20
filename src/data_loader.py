@@ -12,6 +12,11 @@ from config import src_file8
 
 class Dataframes:
     def __init__(self):
+        """
+        Get the location where the csv files are locally stored from config.py. Use joinpath to make the path platform independent
+        Read de csv files
+        Class Dataframes stores different pandas dataframes. Merged_clean_dataset is the result of cleaning and enriching the original RIVM datasets
+        """
         file1 = src_file1
         file2 = src_file2
         file3 = src_file3
@@ -47,12 +52,10 @@ class Riool:
     # Class Dataframes stores different pandas dataframes. Merged_clean_dataset is the result of cleaning and enriching the original RIVM datasets
     def __init__(self):
         """
-        TODO: Describe what this function does.
+        Get the location where the csv files are locally stored from config.py. Use joinpath to make the path platform independent
+        Read de csv files
+        Class Dataframes stores different pandas dataframes. Merged_clean_dataset is the result of cleaning and enriching the original RIVM datasets
         """
-        # get the location where the csv files are locally stored. Use joinpath to make the path platform independent
-#        file5 = CSV_DIR / 'COVID-19_rioolwaterdata.csv'
-#        file6 = CSV_DIR / 'gemeenten_per_provincie.csv'
-
         try:
             self.aantallen_riool = pd.read_csv(src_file5, sep=';', parse_dates=['Date_measurement'])
             self.gemeenten_per_provincie = pd.read_csv(src_file6, sep=';')
@@ -69,10 +72,18 @@ class Riool:
 
 
 def load_province_shapefile():
+    """
+    Get the location where the shape file are locally stored from config.py. Use joinpath to make the path platform independent
+    Read de shape files and store in a geopandas dataframes. 
+    """
     shapefile_path = src_file7
     return gpd.read_file(shapefile_path)
 
 def load_municipality_shapefile():
+        """
+        Get the location where the shape file are locally stored from config.py. Use joinpath to make the path platform independent
+        Read de shape files and store in a geopandas dataframes. 
+        """
     shapefile_path = src_file8
     gdf = gpd.read_file(GPKG_FILE, layer="gemeenten")
     return gdf
