@@ -8,6 +8,7 @@ from config import link2
 from config import link3
 from config import link4
 from config import link5
+from config import link6
 from config import link7
 import dload
 
@@ -58,6 +59,7 @@ def Savepoly(verbose=True):
     try:
 #        dload.save_unzip(link7, SHAPEFILES_DIR)
         dload.save_unzip(link7, 'C:/Users/ronal/Opdracht2_github/covid_dashboard-main/data/shapefiles/')
+#        dload.save_unzip(link7, link6)
         results['CBS'] = '✅ Geslaagd'
         if verbose:
              print(f"✅ {fname} opgeslagen.")

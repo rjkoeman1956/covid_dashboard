@@ -80,10 +80,10 @@ def load_province_shapefile():
     return gpd.read_file(shapefile_path)
 
 def load_municipality_shapefile():
-        """
-        Get the location where the shape file are locally stored from config.py. Use joinpath to make the path platform independent
-        Read de shape files and store in a geopandas dataframes. 
-        """
+    """
+    Get the location where the shape file are locally stored from config.py. Use joinpath to make the path platform independent
+    Read de shape files and store in a geopandas dataframes. 
+    """
     shapefile_path = src_file8
     gdf = gpd.read_file(GPKG_FILE, layer="gemeenten")
     return gdf
