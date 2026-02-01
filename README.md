@@ -2,44 +2,36 @@
 
 OU IB3502-242533B Python Opdracht 2.0 
 
-Update: 2025-05_02_001
+Update: 2025-05_02_002
 
 The main program (Main) is Covid_Dashboard.IPynb. Three tabs are displayed here:
  1. Corona
  2. Heatmap
  3. Sewage water
- 4. Download new data
 
 The three tabs have the following functionality:
 
 1. Corona:
 The original assignment with Corona overviews.
-   1. Selection by year
-   2. Selection Total Reported, Hospital Admission and Deceased. This option can be selected combined
-   3. Level: Netherlands, all provinces and per Povincie.
-   4. For the provinces it is possible to select on Municipalities of Months.
-   5. Charts are shown based on the selections via the Covid_Dashbord_presenter module.
+ 1. Selection by year
+ 2. Selection Total Reported, Hospital Admission and Deceased. This option can be selected combined
+ 3. Level: Netherlands, all provinces and per Povincie.
+ 4. For the provinces it is possible to select on Municipalities of Months.
+ 5. Charts are shown based on the selections via the Covid_Dashbord_presenter module.
 
 2. Heatmap:
 The first addition to the original assignment. Here too it is about direct Corona effects.
-   1. Selection by year
-   2. Selection on: Total Reported, Hospital Admission of Deceased.
-   3. Selection on Provincis or Municipalities
-   4. The output is a heat map of the Netherlands based on the selections via the Covid_Dashbord_presenter module.
+ 1. Selection by year
+ 2. Selection on: Total Reported, Hospital Admission of Deceased.
+ 3. Selection on Provincis or Municipalities
+ 4. The output is a heat map of the Netherlands based on the selections via the Covid_Dashbord_presenter module.
 
 
 3. Sewage:
 The second addition to the original assignment. This is about measured Corona pollution in the sewage water.
-   1. Selection on year.
-   3. Selection on Provincis or Municipalities
-   4. The output is a heat map of the Netherlands based on the selections via the Covid_Dashbord_presenter module.
-
-4. Download new data:
-This is about downloading files
-   1. from the RIVM site and save these in /data/csv
-   2. Download CBS
-      1. Provinciegrenzen van Nederland save these in /data/shapefiles
-      2. Buurt en gemeente save these in /data/shapefiles/WijkBuurtkaart_2024_v1
+ 1. Selection on year.
+ 3. Selection on Provincis or Municipalities
+ 4. The output is a heat map of the Netherlands based on the selections via the Covid_Dashbord_presenter module.
 
 
 This project consists of the following modules:
@@ -49,7 +41,6 @@ This project consists of the following modules:
  3. Data_loader.py
  4. Dataphrame_cleaner.py
  5. Dataphrame_combiner.py
- 6. Data_writer
 
 These five modules together have a clear and separate responsibility.
 
@@ -74,10 +65,6 @@ These five modules together have a clear and separate responsibility.
 5. Dataphrame_combiner.py
  - Combines cleaned data frames on common columns.
  - Type: Merge layer.
-
-6. Download new data:
- - Download files from the RIVM site and save these in /data/csv
- - Type: Extraxt layer
 
 Coherence:
 Each layer is linked separately and fulfills a single responsibility. This makes the whole maintainable, expandable and testable.
@@ -114,12 +101,6 @@ The Snap-it notebook already contains this as the first cell.
 ---
 
 ### 🛠 Installation instruction for package support (optional, recommended for developers)
-
-Needed libraries
-    1. pandas
-    2. geopandas
-    3. dload
-    4. fiona
 
 If you unpack this folder on a new environment and work with Jupyter-notebooks, then perform the following in a terminal in the main folder:
 

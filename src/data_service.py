@@ -1,143 +1,254 @@
+import os, sys
+from pathlib import Path
+
+project_root = Path.cwd()
+while not (project_root / 'config.py').exists() and project_root != project_root.parent:
+    project_root = project_root.parent
+sys.path.insert(0, project_root.as_posix())
+
 import pandas as pd
-import data_loader
-import dataframe_cleaner
-import dataframe_combiner
+import geopandas as gpd
+import matplotlib.pyplot as plt
 
-from data_loader import load_province_shapefile
-from data_loader import load_municipality_shapefile
+from data_loader import read_csv_safe, Dataframes, load_municipality_shapefile
+from dataframe_combiner import combine_dataframes
+from dataframe_cleaner import clean_dataframe_aantallen_gemeente, clean_dataframe_ziekenhuisopnames
+from config import SRC_DIR, CSV_DIR, PROV_SHAPEFILE, MUN_SHAPEFILE, RWZI_FILE, RNA_FILE, SHAPEFILES_DIR, EXPORTS_DIR, UTILS_DIR, PROV_FILE, GEM_PROV_FILE
 
-# from utils.debug_utils import (print_debug_table, print_debug_summary, print_merge_status, print_column_names)
-# debug_show_dataset_in_gui = True
+from src.utils.mapping_utils import (
+    get_metric_mapping_tab1,
+    get_metric_mapping_tab2,
+    get_metric_mapping_tab3
+)
 
-write_dataset_to_csv_file = False
-remove_non_required_data = True
-
+# Centrale COVID-19 Dataset
 def get_prepared_covid_dataset() -> pd.DataFrame:
-    """
-    This function call the data_loader (dataframed) and cleans the data and call the datafram_cleaner for aantallen_gemeente, ziekenhuisopnames. After that it calls the 
-    dataframe_combiner to merge the different dataframes to a new dataframe. 
-    :return: DataFrame
-    """
-    dfs = data_loader.Dataframes()
-    dataframe_cleaner.clean_dataframe_aantallen_gemeente(dfs)
-    dataframe_cleaner.clean_dataframe_ziekenhuisopnames(dfs)
-    clean_dataset = dataframe_combiner.combine_dataframes(dfs)
-    dfs.set_merged_and_clean_dataset(clean_dataset)
-    dataframe_cleaner.add_columns_clean_merged_dataframe(dfs)
-    if remove_non_required_data:
-        clean_small_dataset = dataframe_cleaner.remove_non_required_columns(clean_dataset)
-    else:
-        clean_small_dataset = clean_dataset
-    dfs.set_merged_and_clean_dataset(clean_small_dataset)
-    if write_dataset_to_csv_file:
-        dfs.merged_clean_dataset.to_csv('merged_clean_data.csv', index=False)
-    return dfs.merged_clean_dataset
+    dataframes = Dataframes()
+    clean_dataframe_aantallen_gemeente(dataframes)
+    clean_dataframe_ziekenhuisopnames(dataframes)
 
-def get_prepared_riool_dataset() -> pd.DataFrame:
-    """
-    This function call the data_loader and cleans the data (riool). 
-    :return: DataFrame
-    """
+    merged_df = combine_dataframes(dataframes)
 
-    dfs_riool = data_loader.Riool()
-    dfs_riool.aantallen_riool['Year'] = dfs_riool.aantallen_riool['Date_measurement'].dt.to_period('Y').astype(str)
-    dfs_riool.aantallen_riool['Month'] = dfs_riool.aantallen_riool['Date_measurement'].dt.month.astype(int)
-    return dfs_riool
+    # Extra kolommen: Year, Month, *_merged
+    merged_df["Year"] = pd.to_datetime(merged_df["Date_of_publication"], errors="coerce", dayfirst=False).dt.year.astype("Int64")
+    merged_df["Month"] = pd.to_datetime(merged_df["Date_of_publication"], errors="coerce", dayfirst=False).dt.month
+    merged_df["Province_merged"] = merged_df["Province"]
+    merged_df["Municipality_name_merged"] = merged_df["Municipality_name"]    
 
-def get_heatmap_data(df, gdf, geo_colname, df_colname, group_by, metric_column, year):
-    df_year = df[df['Year'] == year]
-    df_grouped = df_year.groupby(group_by)[[metric_column]].sum().reset_index()
-    gdf = gdf.rename(columns={geo_colname: group_by})
-    merged = gdf.merge(df_grouped, on=group_by, how='left')
-    return merged
+    # print("Columns after combine_dataframes():")
+    # print(merged_df.columns.tolist())
 
-def get_province_heatmap_data(year, metric_column):
-    """
-    This function combine the covid_dataset and the province shapefill
-    :param: year, metric_column
-    :return: heatmap_data
-    """
+    dataframes.set_merged_and_clean_dataset(merged_df)
+    return merged_df
 
-    df = get_prepared_covid_dataset()
+# Heatmap data: Provinces (Tab2)
+def get_province_heatmap_data(year, column):
+    from data_loader import Dataframes, load_province_shapefile
+    from dataframe_combiner import combine_dataframes
+    from dataframe_cleaner import clean_dataframe_aantallen_gemeente, clean_dataframe_ziekenhuisopnames, add_year_and_month_columns
+    import pandas as pd
+
+    # 1. Instantieer de data
+    dfs = Dataframes()
+
+    # 2. Reinig de brondata
+    clean_dataframe_aantallen_gemeente(dfs)
+    clean_dataframe_ziekenhuisopnames(dfs)
+
+    # 3. Combineer tot samengevoegd dataframe
+    df_combined = combine_dataframes(dfs)
+
+    # 4. Voeg kolommen 'Year' en 'Month' toe
+    df_combined = add_year_and_month_columns(df_combined)
+
+    # 5. Merge kolommen (Province_merged etc.)
+    df_combined["Province_merged"] = df_combined["Province"].combine_first(df_combined.get("Province_y"))
+    df_combined["Municipality_name_merged"] = df_combined["Municipality_name"].combine_first(df_combined.get("Municipality_name_x"))
+
+    # 6. Filter op jaar
+    df = df_combined[df_combined["Year"] == int(year)]
+
+    # 7. Groepeer per provincie
+    df_grouped = df.groupby("Province_merged", as_index=False)[column].sum(numeric_only=True)
+
+    # 8. Lees geopandas shapefile
     gdf = load_province_shapefile()
-    return get_heatmap_data(
-        df=df,
-        gdf=gdf,
-        geo_colname='PROV_NAAM',
-        df_colname='Province_merged',
-        group_by='Province_merged',
-        metric_column=metric_column,
-        year=year
-    )
 
-def get_municipality_heatmap_data(year, metric_column):
+    # 9. Merge GeoDataFrame met data
+    gdf = gdf.merge(df_grouped, left_on="NAAM", right_on="Province_merged", how="left")
+
+    return gdf  
+
+    
+# Heatmap data: Municipalities (Tab3)
+def get_municipality_heatmap_data(year, column):
     """
-    This function combine the covid_dataset and the municipality shapefill
-    :param: year, metric_column
-    :return: heatmap_data
+    Haalt een GeoDataFrame op met COVID-data per gemeente,
+    en filtert 'Water == Ja' eruit vóór de merge.
     """
+    from data_loader import load_municipality_shapefile
+    from data_service import get_prepared_covid_dataset
+
     df = get_prepared_covid_dataset()
+    df_filtered = df[df['Year'] == int(year)]
+    df_grouped = df_filtered.groupby('Municipality_name_merged', as_index=False).agg({column: 'sum'})
+
     gdf = load_municipality_shapefile()
-    return get_heatmap_data(
-        df=df,
-        gdf=gdf,
-        geo_colname='gemeentenaam',
-        df_colname='Municipality_name_merged',
-        group_by='Municipality_name_merged',
-        metric_column=metric_column,
-        year=year
+
+    # Filter: geen waterpolygonen meenemen
+    if "water" in gdf.columns:
+        gdf = gdf[~gdf["water"].str.strip().str.upper().eq("JA")]
+
+    gdf = gdf.rename(columns={'gemeentenaam': 'Municipality_name_merged'})  # indien nog niet gestandaardiseerd
+    gdf_merged = gdf.merge(df_grouped, on='Municipality_name_merged', how='left')
+
+    return gdf_merged
+
+
+
+# Placeholder voor Tab3 Riooldata
+def get_prepared_riool_dataset() -> pd.DataFrame:
+    try:
+        return pd.read_csv(CSV_DIR / RNA_FILE, sep=";")
+    except FileNotFoundError:
+        return pd.DataFrame()
+        
+        
+def get_gem_prov() -> pd.DataFrame:
+    try:
+        return pd.read_csv(CSV_DIR / GEM_PROV_FILE, sep=";")
+    except FileNotFoundError:
+        return pd.DataFrame()
+
+
+def get_municipality_share_rwzi_dataset() -> pd.DataFrame:
+    try:
+        return pd.read_csv(CSV_DIR / RWZI_FILE, sep=";")
+    except FileNotFoundError:
+        return pd.DataFrame()
+
+# Converteer MUN_SHARE naar float
+def clean_mun_share_column(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Zet kolom 'MUN_SHARE' van percentage met komma (bv. '67,5%') naar decimaal (bv. 0.675)
+    """
+    df = df.copy()
+    df["MUN_SHARE"] = (
+        df["MUN_SHARE"]
+        .astype(str)
+        .str.strip()
+        .str.replace("%", "", regex=False)
+        .str.replace(",", ".", regex=False)  
+        .astype(float) / 100.0
     )
+    return df
 
-def get_province_heatmap_riool_data(year, metric_column):
+ 
+def get_riool_heatmap_data(year, region, column):
     """
-    This function combine the riool_dataset and the province shapefill
-    :param: year, metric_column
-    :return: heatmap_data
+    Laadt en combineert rioolwaterdata, aandeel per gemeente, en geometrie
+    om een heatmap op gemeentelijk of provinciaal niveau te maken.
     """
-    df = get_prepared_riool_dataset()
-    df.aantallen_riool = df.aantallen_riool.rename(columns={'RWZI_AWZI_name': 'Gemeentenaam'})
-    df_prov = df.gemeenten_per_provincie
-    df_merged = pd.merge(df.aantallen_riool, df_prov, on='Gemeentenaam', how='inner')
-    return get_heatmap_data(
-        df=df_merged,
-        gdf=load_province_shapefile(),
-        geo_colname='PROV_NAAM',
-        df_colname='Gemeentenaam',
-        group_by='Provincie',
-        metric_column=metric_column,
-        year=year
-    )
+    # --- 1. CSV-bestanden veilig inlezen ---
+    df_rna = pd.read_csv(CSV_DIR / RNA_FILE, sep=';')
+    df_share = pd.read_csv(CSV_DIR / RWZI_FILE, sep=';')
 
-def get_municipality_heatmap_riool_data(year, metric_column):
+    # --- 2. Validatie ---
+    if df_rna.empty or df_share.empty:
+        print("⚠️ Eén van de datasets is leeg of kon niet worden gelezen.")
+        return gpd.GeoDataFrame()
+    
+    # --- 3. Filter en aggregeer riooldata ---
+    df_share = clean_mun_share_column(df_share)
+    df_rna["RWZI_AWZI_code"] = df_rna["RWZI_AWZI_code"].astype(str)
+    df_rna["Date_measurement"] = pd.to_datetime(df_rna["Date_measurement"], errors='coerce')
+    df_rna["Year"] = df_rna["Date_measurement"].dt.year
+
+    # --- 4. Join datasets op RWZI-code
+    df = df_rna.merge(df_share, left_on="RWZI_AWZI_code", right_on="RWZI_CODE", how="inner")
+
+    # --- 5. Filter op jaar (geen filter op 'water', die kolom bestaat hier niet)
+    df = df[df["Year"] == int(year)]
+
+    return df
+
+
+# Sewer Heatmap data: Provincie (Tab3)
+def get_province_riool_heatmap_data(year, region, column):
     """
-    This function combine the riool_dataset and the municipality shapefill
-    :param: year, metric_column
-    :return: heatmap_data
+    Combineert rioolwaterdata met provinciegrenzen
+    voor de provinciale heatmap in Tab3.
     """
-    df = get_prepared_riool_dataset()
-    return get_heatmap_data(
-        df=df.aantallen_riool,
-        gdf=load_municipality_shapefile(),
-        geo_colname='gemeentenaam',
-        df_colname='RWZI_AWZI_name',
-        group_by='RWZI_AWZI_name',
-        metric_column=metric_column,
-        year=year
-    )
+    from data_loader import load_province_shapefile
 
-def get_metric_mapping_covid():
-    return {
-        'Total reported': 'Total_reported',
-        'Hospital admission': 'Hospital_admission',
-        'Deceased': 'Deceased'
-    }
+    # --- 1. CSV-bestanden veilig inlezen ---
+    df = get_riool_heatmap_data(year, region, column)
+    df_prov = get_gem_prov()
 
-def get_metric_mapping_sewer():
-    return {
-        'RNA flow per 100000': 'RNA_flow_per_100000'        
-    }
+    # --- 2. Validatie ---
+    if df_prov.empty:
+        print("⚠️ Eén van de datasets is leeg of kon niet worden gelezen.")
+        return gpd.GeoDataFrame()
 
-def get_available_years(df=None):
-    if df is None:
-        df = get_prepared_covid_dataset()
-    return df['Year'].dropna().sort_values().unique().tolist()
+    # --- 3. Filter en aggregeer riooldata ---
+    df_prov.loc[df_prov['Provincienaam'] == 'Friesland', 'Provincienaam'] = 'Fryslân'
+    df = df.rename(columns={'RWZI_AWZI_name': 'Gemeentenaam'})
+    merged_df = pd.merge(df, df_prov, on='Gemeentenaam', how='inner')
+
+    # --- 4. Lees geopandas shapefile
+    gdf = load_province_shapefile()
+
+    # --- 5. Merge GeoDataFrame met data
+    df_grouped = merged_df.groupby('Provincienaam')[['RNA_flow_per_100000']].sum().reset_index()
+    gdf = gdf.rename(columns={'NAAM': 'Provincienaam'})
+    gdf = gdf.merge(df_grouped, on='Provincienaam', how='left')
+       
+    return gdf
+
+
+# Sewer Heatmap data: Municipalities (Tab3)
+def get_municipality_riool_heatmap_data(year, region, column):
+    """
+    Combineert rioolwaterdata met RWZI-verdeling en gemeentelijke grenzen
+    voor de gemeentelijke heatmap in Tab3.
+    """
+   # --- 1. CSV-bestanden veilig inlezen ---
+    df = get_riool_heatmap_data(year, region, column)
+
+    # --- 2. Gewicht berekenen
+    df["Weighted"] = df["RNA_flow_per_100000"] * df["MUN_SHARE"]
+
+    # --- 3. Aggregatie per gemeente
+    df_agg = df.groupby("MUN_CODE").agg({
+        "Weighted": "sum",
+        "MUN_NAME": "first"
+    }).reset_index()
+
+    df_agg["RNA_flow_per_100000"] = df_agg["Weighted"]
+
+    # --- 4. Laad geometrie van gemeenten – expliciet juiste layer
+    gdf = gpd.read_file(MUN_SHAPEFILE, layer="gemeenten")
+
+    # --- 5. Merge GeoDataFrame met data
+    gdf["gemeentecode"] = gdf["gemeentecode"].astype(str)
+    gdf = gdf.merge(df_agg, left_on="gemeentecode", right_on="MUN_CODE", how="left")
+        
+    return gdf       
+
+
+# Bepaal de jaartallen in een dataframe
+def get_available_years(df, prefer_year="2020"):
+    """
+    Retourneert een lijst van geldige jaartallen (als int) en een default jaar.
+    """
+    # Zorg dat Year als integer wordt geïnterpreteerd
+    df["Year"] = pd.to_datetime(df["Date_of_publication"], errors="coerce", dayfirst=False).dt.year
+    df["Year"] = df["Year"].astype("Int64")
+
+    available_years = sorted(df["Year"].dropna().unique().tolist())
+    
+    if not available_years:
+        raise ValueError("❌ Geen geldige jaartallen gevonden in dataset.")
+
+    default_year = int(prefer_year) if int(prefer_year) in available_years else available_years[0]
+    return available_years, default_year
